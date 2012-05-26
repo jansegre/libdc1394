@@ -20,12 +20,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  */
 
-#include <unistd.h>
+//#include <unistd.h>
+#include <stdlib.h>
 #if HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
 #include <errno.h>
-#include <stdlib.h>
+#ifdef _WIN32
+#include <windows.h>
+#define sleep Sleep
+#endif
 
 #include "control.h"
 #include "internal.h"
@@ -105,7 +109,7 @@ _dc1394_v130_handshake(dc1394camera_t *camera, dc1394video_mode_t video_mode)
     if (v130handshake==1) {
         // we should use advanced IIDC v1.30 handshaking.
         // set value setting to 1
-        err=dc1394_format7_set_value_setting(camera, video_mode);
+        err = (dc1394error_t)dc1394_format7_set_value_setting(camera, video_mode);
         DC1394_ERR_RTN(err, "Unable to set value setting register");
 
         // wait for value setting to clear:
@@ -115,7 +119,7 @@ _dc1394_v130_handshake(dc1394camera_t *camera, dc1394video_mode_t video_mode)
             DC1394_ERR_RTN(err, "Unable to read value setting register");
 
             exit_loop=(setting_1==0);
-            usleep(0);
+            sleep(0);
         }
         if (err_flag1>0) {
             err=DC1394_FORMAT7_ERROR_FLAG_1;
@@ -189,8 +193,8 @@ _dc1394_format7_set_color_coding(dc1394camera_t *camera,
     if (!dc1394_is_video_mode_scalable(video_mode))
         return DC1394_INVALID_VIDEO_MODE;
 
-    color_coding-= DC1394_COLOR_CODING_MIN;
-    color_coding=color_coding<<24;
+    color_coding -= DC1394_COLOR_CODING_MIN;
+    color_coding = (dc1394color_coding_t)(color_coding << 24);
     err=dc1394_set_format7_register(camera, video_mode,REG_CAMERA_FORMAT7_COLOR_CODING_ID, (uint32_t)color_coding);
     DC1394_ERR_RTN(err, "Format7 color coding setting failure");
 
@@ -329,7 +333,7 @@ dc1394_format7_get_color_coding(dc1394camera_t *camera,
     DC1394_ERR_RTN(err, "Could not get current color_id");
 
     value=value>>24;
-    *color_coding= (uint32_t)value+DC1394_COLOR_CODING_MIN;
+    *color_coding = (dc1394color_coding_t)((uint32_t)value + DC1394_COLOR_CODING_MIN);
 
     return err;
 }
@@ -352,7 +356,7 @@ dc1394_format7_get_color_codings(dc1394camera_t *camera,
     color_codings->num=0;
     for (i=0;i<DC1394_COLOR_CODING_NUM;i++) {
         if ((value & (0x1 << (31-i))) > 0) {
-            color_codings->codings[color_codings->num]=i+DC1394_COLOR_CODING_MIN;
+            color_codings->codings[color_codings->num] = (dc1394color_coding_t)(i + DC1394_COLOR_CODING_MIN);
             color_codings->num++;
         }
     }
@@ -667,7 +671,7 @@ dc1394_format7_get_color_filter(dc1394camera_t *camera, dc1394video_mode_t video
     err=dc1394_get_format7_register(camera, video_mode, REG_CAMERA_FORMAT7_COLOR_FILTER_ID, &value);
     DC1394_ERR_RTN(err, "Could not get color filter ID");
 
-    *color_filter= (value >> 24)+DC1394_COLOR_FILTER_MIN;
+    *color_filter = (dc1394color_filter_t)((value >> 24) + DC1394_COLOR_FILTER_MIN);
     return err;
 }
 
@@ -729,7 +733,7 @@ dc1394_format7_get_mode_info(dc1394camera_t *camera, dc1394video_mode_t video_mo
             DC1394_ERR_RTN(err,"Got a problem querying format7 bayer pattern");
         }
         else {
-            f7_mode->color_filter = 0;
+            f7_mode->color_filter = (dc1394color_filter_t)0;
         }
 
     }
@@ -745,7 +749,7 @@ dc1394_format7_get_modeset(dc1394camera_t *camera, dc1394format7modeset_t *info)
     dc1394video_modes_t modes;
 
     for (i=0;i<DC1394_VIDEO_MODE_FORMAT7_NUM;i++) {
-        info->mode[i].present=0;
+        info->mode[i].present=(dc1394bool_t)0;
     }
 
     err=dc1394_video_get_supported_modes(camera, &modes);
@@ -754,7 +758,7 @@ dc1394_format7_get_modeset(dc1394camera_t *camera, dc1394format7modeset_t *info)
     // find a mode which is F7:
     for (i=0;i<modes.num;i++) {
         if (dc1394_is_video_mode_scalable(modes.modes[i])) {
-            info->mode[modes.modes[i]-DC1394_VIDEO_MODE_FORMAT7_MIN].present= 1;
+            info->mode[modes.modes[i]-DC1394_VIDEO_MODE_FORMAT7_MIN].present = (dc1394bool_t)1;
             dc1394_format7_get_mode_info(camera, modes.modes[i], &info->mode[modes.modes[i]-DC1394_VIDEO_MODE_FORMAT7_MIN]);
         }
     }

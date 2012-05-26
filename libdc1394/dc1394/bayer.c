@@ -21,9 +21,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <stdlib.h>
 #include <limits.h>
 #include <math.h>
-#include <stdlib.h>
 #include <string.h>
 #include "conversions.h"
 
@@ -40,7 +40,7 @@
 void
 ClearBorders(uint8_t *rgb, int sx, int sy, int w)
 {
-    int i, j;
+    int i, j, low;
     // black edges are added with a width w:
     i = 3 * sx * w - 1;
     j = 3 * sx * sy - 1;
@@ -49,7 +49,7 @@ ClearBorders(uint8_t *rgb, int sx, int sy, int w)
         rgb[j--] = 0;
     }
 
-    int low = sx * (w - 1) * 3 - 1 + w * 3;
+    low = sx * (w - 1) * 3 - 1 + w * 3;
     i = low + sx * (sy - w * 2 + 1) * 3;
     while (i > low) {
         j = 6 * w;
@@ -65,6 +65,7 @@ void
 ClearBorders_uint16(uint16_t * rgb, int sx, int sy, int w)
 {
     int i, j;
+    int low;
 
     // black edges:
     i = 3 * sx * w - 1;
@@ -74,7 +75,7 @@ ClearBorders_uint16(uint16_t * rgb, int sx, int sy, int w)
         rgb[j--] = 0;
     }
 
-    int low = sx * (w - 1) * 3 - 1 + w * 3;
+    low = sx * (w - 1) * 3 - 1 + w * 3;
     i = low + sx * (sy - w * 2 + 1) * 3;
     while (i > low) {
         j = 6 * w;
@@ -100,7 +101,7 @@ ClearBorders_uint16(uint16_t * rgb, int sx, int sy, int w)
 /* insprired by OpenCV's Bayer decoding */
 
 dc1394error_t
-dc1394_bayer_NearestNeighbor(const uint8_t *restrict bayer, uint8_t *restrict rgb, int sx, int sy, int tile)
+dc1394_bayer_NearestNeighbor(const uint8_t * bayer, uint8_t * rgb, int sx, int sy, int tile)
 {
     const int bayerStep = sx;
     const int rgbStep = 3 * sx;

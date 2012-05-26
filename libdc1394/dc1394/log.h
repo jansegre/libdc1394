@@ -195,7 +195,14 @@ typedef enum {
     }                                                     \
   } while (0);
 
+#else
 
+/* Some dummy definitions. */
+#define DC1394_WRN(err,message)
+#define DC1394_ERR(err,message)
+#define DC1394_ERR_RTN(err,message)
+#define DC1394_ERR_CLN(err,cleanup,message)
+#define DC1394_ERR_CLN_RTN(err,cleanup,message)
 #endif /* _MSC_VER */
 
 #ifdef __cplusplus

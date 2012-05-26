@@ -59,23 +59,32 @@ static dc1394error_t
 windows_capture_setup (platform_camera_t * craw, uint32_t num_dma_buffers, uint32_t flags)
 {
     int i;
+    const char * device_path;
+    ULARGE_INTEGER dma_buffer_size;
+    const dc1394video_frame_t * frame;
+    int max_buffer_size;
+    int max_bytes;
+    PACQUISITION_BUFFER acquisition_buffer, buffer;
+    ISOCH_STREAM_PARAMS stream_params;
+    dc1394speed_t speed;
+    uint32_t channel = -1;
+    DWORD ret;
+    HANDLE device;
 
     free_resources(craw);
 
-    ULARGE_INTEGER dma_buffer_size;
-    const char * device_path = craw->device->device_path;
+    device_path = craw->device->device_path;
     t1394_GetHostDmaCapabilities (device_path, NULL, &dma_buffer_size);
 
-    const dc1394video_frame_t * frame = &craw->capture.frames[0];
-    int max_buffer_size = frame->total_bytes; //number of bytes needed
-    int max_bytes = frame->packet_size / 2;
+    frame = &craw->capture.frames[0];
+    max_buffer_size = frame->total_bytes; //number of bytes needed
+    max_bytes = frame->packet_size / 2;
 
-    PACQUISITION_BUFFER acquisition_buffer =
+    acquisition_buffer =
         dc1394BuildAcquisitonBuffer(max_buffer_size,
                                     (unsigned long)dma_buffer_size.QuadPart,
                                     max_bytes, 0);
 
-    ISOCH_STREAM_PARAMS stream_params;
     if (acquisition_buffer) {
         stream_params.nMaxBufferSize = acquisition_buffer->subBuffers[0].ulSize;
         stream_params.nNumberOfBuffers = (num_dma_buffers * acquisition_buffer->nSubBuffers) + 1;
@@ -88,18 +97,16 @@ windows_capture_setup (platform_camera_t * craw, uint32_t num_dma_buffers, uint3
         return DC1394_FAILURE;
     }
 
-    dc1394speed_t speed;
     if (dc1394_video_get_iso_speed(craw->camera, &speed) != DC1394_SUCCESS) {
         dc1394_log_error("windows_capture_setup: failed to get iso speed!");
         return DC1394_FAILURE;
     }
 
-    uint32_t channel = -1;
     stream_params.fulSpeed = 1 << speed;
     stream_params.nChannel = channel;
     stream_params.nMaxBytesPerFrame = max_bytes;
 
-    DWORD ret = t1394IsochSetupStream(craw->device->device_path,
+    ret = t1394IsochSetupStream(craw->device->device_path,
                                       &stream_params);
     craw->allocated_channel = stream_params.nChannel;
     if (ret != ERROR_SUCCESS) {
@@ -157,7 +164,6 @@ windows_capture_setup (platform_camera_t * craw, uint32_t num_dma_buffers, uint3
 
     // all done making buffers
     // open our long term device handle
-    HANDLE device;
     if((device = OpenDevice(device_path, TRUE)) == INVALID_HANDLE_VALUE) {
         dc1394_log_error("windows_capture_setup error opening device (%s)\n", craw->device->device_path);
         return DC1394_FAILURE;
@@ -165,7 +171,6 @@ windows_capture_setup (platform_camera_t * craw, uint32_t num_dma_buffers, uint3
 
     // all done making buffers
     // open our long term device handle
-    PACQUISITION_BUFFER buffer;
     for (buffer = craw->pLastBuffer;
          buffer != NULL; buffer = buffer->pNextBuffer) {
         DWORD ret = dc1394AttachAcquisitionBuffer(device, buffer);
@@ -185,7 +190,8 @@ windows_capture_setup (platform_camera_t * craw, uint32_t num_dma_buffers, uint3
     for (buffer = craw->pLastBuffer;
          buffer != NULL; buffer = buffer->pNextBuffer) {
         DWORD dwBytesRet = 0;
-        for (unsigned int bb = 0; bb < buffer->nSubBuffers; ++bb) {
+        unsigned int bb;
+        for (bb = 0; bb < buffer->nSubBuffers; ++bb) {
             if (!GetOverlappedResult(device,
                                      &(buffer->subBuffers[bb].overLapped),
                                      &dwBytesRet, FALSE)) {
@@ -252,7 +258,7 @@ dc1394_windows_capture_setup(platform_camera_t * craw, uint32_t num_dma_buffers,
     }
 
     craw->capture.frames =
-        malloc (num_dma_buffers * sizeof (dc1394video_frame_t));
+        (dc1394video_frame_t *)malloc (num_dma_buffers * sizeof (dc1394video_frame_t));
     if (!craw->capture.frames) {
         goto fail;
     }
@@ -304,6 +310,7 @@ dc1394_windows_capture_stop(platform_camera_t *craw)
 {
     DWORD dwBytesRet = 0;
     DWORD ret;
+    unsigned int ii;
 
     if (craw->device_acquisition == INVALID_HANDLE_VALUE) {
         dc1394_log_error("StopImageAcquisition: Called with invalid device handle\n");
@@ -323,9 +330,10 @@ dc1394_windows_capture_stop(platform_camera_t *craw)
     }
 
     while (craw->pLastBuffer) {
+        PACQUISITION_BUFFER pAcqBuffer;
         if (craw->pLastBuffer != craw->pCurrentBuffer) {
             // check the IO status, just in case
-            for (unsigned int ii = 0; ii < craw->pLastBuffer->nSubBuffers; ++ii) {
+            for (ii = 0; ii < craw->pLastBuffer->nSubBuffers; ++ii) {
                 if (!GetOverlappedResult(craw->device_acquisition, &craw->pLastBuffer->subBuffers[ii].overLapped, &dwBytesRet, TRUE)) {
                     dc1394_log_warning("dc1394_windows_capture_stop: Warning Buffer %d.%d has not been detached, error = %d\n", craw->pLastBuffer->index,ii,GetLastError());
                 }
@@ -333,7 +341,7 @@ dc1394_windows_capture_stop(platform_camera_t *craw)
         }
 
         // check the IO status, just in case
-        for(unsigned int ii = 0; ii<craw->pLastBuffer->nSubBuffers; ++ii) {
+        for(ii = 0; ii<craw->pLastBuffer->nSubBuffers; ++ii) {
             // close event: NOTE: must pre-populate correctly above
             if(craw->pLastBuffer->subBuffers[ii].overLapped.hEvent != NULL) {
                 CloseHandle(craw->pLastBuffer->subBuffers[ii].overLapped.hEvent);
@@ -346,7 +354,7 @@ dc1394_windows_capture_stop(platform_camera_t *craw)
             GlobalFree(craw->pLastBuffer->pDataBuf);
 
         // advance to next buffer
-        PACQUISITION_BUFFER pAcqBuffer = craw->pLastBuffer;
+        pAcqBuffer = craw->pLastBuffer;
         craw->pLastBuffer = craw->pLastBuffer->pNextBuffer;
 
         // free buffer struct
@@ -373,6 +381,8 @@ dc1394_windows_capture_dequeue (platform_camera_t * craw,
                                 dc1394video_frame_t **frame)
 {
     DWORD dwRet = 0;
+    unsigned long length;
+    dc1394capture_t * capture;
 
     LPOVERLAPPED pOverlapped = &(craw->pLastBuffer->subBuffers[craw->pLastBuffer->nSubBuffers - 1].overLapped);
     DWORD dwBytesRet = 0;
@@ -409,9 +419,9 @@ dc1394_windows_capture_dequeue (platform_camera_t * craw,
     // an stl-containerlike iterator mechanism that "hides" the flattened-or-not-ness.  Putting that here
     // would, however, break the external API in a way that might require a majorversion bump...
     dc1394FlattenAcquisitionBuffer(craw->pCurrentBuffer);
-    unsigned long length = craw->pCurrentBuffer->ulBufferSize;
+    length = craw->pCurrentBuffer->ulBufferSize;
 
-    dc1394capture_t * capture = &craw->capture;
+    capture = &craw->capture;
     *frame = &capture->frames[capture->frames_last_index];
     (*frame)->image = craw->pCurrentBuffer->pFrameStart;
     (*frame)->image_bytes = length;

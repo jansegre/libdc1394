@@ -359,7 +359,7 @@ dc1394error_t dc1394_basler_sff_feature_print_all (dc1394camera_t* camera, FILE 
 {
     uint32_t i = DC1394_BASLER_SFF_FEATURE_MIN;
     while (i < DC1394_BASLER_SFF_FEATURE_MAX) {
-        dc1394_basler_sff_feature_print (camera, i, fd);
+        dc1394_basler_sff_feature_print (camera, (dc1394basler_sff_feature_t)i, fd);
         fprintf (fd, "\n");
         i++;
     }
@@ -375,7 +375,7 @@ dc1394bool_t dc1394_basler_sff_check_crc (const uint8_t* frame_buffer, uint32_t 
 
     /* retrieve the desired checksum from the buffer */
     desired_crc = ((uint32_t*)frame_buffer)[frame_size / sizeof(uint32_t) - 1];
-    return current_crc == desired_crc;
+    return (dc1394bool_t)(current_crc == desired_crc);
 }
 
 /*
@@ -395,7 +395,7 @@ dc1394error_t dc1394_basler_sff_chunk_iterate_init (dc1394basler_sff_t* chunk, v
      * interested in parsing it */
     if (has_crc_checksum)
         chunk->frame_size -= sizeof(dc1394basler_sff_crc_checksum_t);
-    chunk->current_iter = chunk->frame_buffer + chunk->frame_size;
+    chunk->current_iter = (void *)((uint32_t)chunk->frame_buffer + chunk->frame_size);
     chunk->chunk_data = NULL;
     return DC1394_SUCCESS;
 }
@@ -412,17 +412,17 @@ dc1394error_t dc1394_basler_sff_chunk_iterate (dc1394basler_sff_t* chunk)
         return DC1394_INVALID_ARGUMENT_VALUE;
 
     if (chunk->frame_buffer >= chunk->current_iter ||
-        chunk->current_iter - chunk->frame_buffer <= sizeof(dc1394basler_sff_chunk_tail_t))
+        (uint32_t)chunk->current_iter - (uint32_t)chunk->frame_buffer <= sizeof(dc1394basler_sff_chunk_tail_t))
         return DC1394_BASLER_NO_MORE_SFF_CHUNKS;
 
     /* try to extract at least one chunk tail */
-    tail = chunk->current_iter - sizeof(dc1394basler_sff_chunk_tail_t);
+    tail = (dc1394basler_sff_chunk_tail_t *)(chunk->current_iter) - sizeof(dc1394basler_sff_chunk_tail_t);
 
     /* check if the size field is correct */
     if (~(tail->chunk_size) != tail->inverted_chunk_size)
         return DC1394_BASLER_CORRUPTED_SFF_CHUNK;
 
-    if (chunk->current_iter - chunk->frame_buffer < tail->chunk_size)
+    if ((uint32_t)(chunk->current_iter) - (uint32_t)(chunk->frame_buffer) < tail->chunk_size)
         return DC1394_BASLER_CORRUPTED_SFF_CHUNK;
 
     /* check if we know this chunk's type */
@@ -436,10 +436,10 @@ dc1394error_t dc1394_basler_sff_chunk_iterate (dc1394basler_sff_t* chunk)
      * because one chunk type the extended data stream has not the same in size
      * in the image stream as has the C type, therefore for clarities sake
      * the size of the C type is stored in the feature_desc */
-    chunk->chunk_data = chunk->current_iter - feature_desc->data_size;
+    chunk->chunk_data = (void *)((uint32_t)(chunk->current_iter) - feature_desc->data_size);
 
     /* but we must move the current_iter by the size in the tail */
-    chunk->current_iter -= tail->chunk_size;
+    chunk->current_iter = (void *)((uint32_t)chunk->current_iter - tail->chunk_size);
     return DC1394_SUCCESS;
 }
 

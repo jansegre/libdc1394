@@ -20,8 +20,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
 
@@ -84,17 +84,24 @@ static dc1394error_t
 update_camera_info (dc1394camera_t *camera)
 {
     uint32_t value=0, quadval = 0; // set to zero to avoid valgrind errors
+    dc1394bool_t adv_features_capable, opt_function_capable;
+    dc1394error_t err;
+    dc1394speed_t iso_speed;
+    dc1394video_modes_t modes;
+    dc1394video_mode_t video_mode;
+    dc1394framerate_t framerate;
+    dc1394framerates_t framerates;
 
     dc1394_get_control_register(camera, REG_CAMERA_BASIC_FUNC_INQ, &value);
 
-    int adv_features_capable = value >> 31;
-    camera->has_vmode_error_status = (value >> 30) & 1;
-    camera->has_feature_error_status = (value >> 29) & 1;
-    int opt_function_capable = (value >> 28) & 1;
-    camera->bmode_capable = (value >> 23) & 1;
-    camera->can_switch_on_off = (value >> 15) & 1;
-    camera->one_shot_capable = (value >> 12) & 1;
-    camera->multi_shot_capable = (value >> 11) & 1;
+    adv_features_capable = (dc1394bool_t)(value >> 31);
+    camera->has_vmode_error_status = (dc1394bool_t)((value >> 30) & 1);
+    camera->has_feature_error_status = (dc1394bool_t)((value >> 29) & 1);
+    opt_function_capable = (dc1394bool_t)((value >> 28) & 1);
+    camera->bmode_capable = (dc1394bool_t)((value >> 23) & 1);
+    camera->can_switch_on_off = (dc1394bool_t)((value >> 15) & 1);
+    camera->one_shot_capable = (dc1394bool_t)((value >> 12) & 1);
+    camera->multi_shot_capable = (dc1394bool_t)((value >> 11) & 1);
     camera->max_mem_channel    = value & 0xf;
 
     if (adv_features_capable)
@@ -120,8 +127,6 @@ update_camera_info (dc1394camera_t *camera)
     // at boot time
 
     /* get the current ISO speed, and verify it*/
-    dc1394error_t err;
-    dc1394speed_t iso_speed;
     err=dc1394_video_get_iso_speed(camera, &iso_speed);
     if (err==DC1394_INVALID_ISO_SPEED) {
         // default to the most probable speed: 400 Mbps
@@ -129,8 +134,6 @@ update_camera_info (dc1394camera_t *camera)
     }
 
     /* get the current video mode, and verify it*/
-    dc1394video_modes_t modes;
-    dc1394video_mode_t video_mode;
     err=dc1394_video_get_mode(camera, &video_mode);
     if (err==DC1394_INVALID_VIDEO_FORMAT) {
         // a proper video mode may not be present. Try to set a default video mode
@@ -140,8 +143,6 @@ update_camera_info (dc1394camera_t *camera)
     }
 
     /* get the current framerate, and verify it*/
-    dc1394framerate_t framerate;
-    dc1394framerates_t framerates;
     err=dc1394_video_get_framerate(camera, &framerate);
     if (err==DC1394_INVALID_FRAMERATE) {
         // a proper framerate may not be present. Try to set a default framerate
@@ -157,6 +158,7 @@ dc1394error_t
 dc1394_camera_print_info(dc1394camera_t *camera, FILE* fd)
 {
     dc1394camera_priv_t * cpriv = DC1394_CAMERA_PRIV (camera);
+    const platform_dispatch_t * d = cpriv->platform->dispatch;
     uint32_t value[2];
 
     value[0]= camera->guid & 0xffffffff;
@@ -184,7 +186,6 @@ dc1394_camera_print_info(dc1394camera_t *camera, FILE* fd)
 
     fprintf(fd,"Platform backend                  :     %s\n",
             cpriv->platform->name);
-    const platform_dispatch_t * d = cpriv->platform->dispatch;
     if (d->camera_print_info)
         d->camera_print_info (cpriv->pcam, fd);
 
@@ -246,10 +247,10 @@ dc1394_feature_get(dc1394camera_t *camera, dc1394feature_info_t *feature)
     dc1394_feature_get_mode(camera, feature->id, &feature->current_mode);
 
     switch (feature->id) {
-    case DC1394_FEATURE_TRIGGER:
-        feature->polarity_capable= (value & 0x02000000UL) ? DC1394_TRUE : DC1394_FALSE;
         int i, j;
         uint32_t value_tmp;
+    case DC1394_FEATURE_TRIGGER:
+        feature->polarity_capable= (value & 0x02000000UL) ? DC1394_TRUE : DC1394_FALSE;
 
         feature->trigger_modes.num=0;
         value_tmp= (value & (0xFFFF));
@@ -343,12 +344,14 @@ dc1394_feature_get(dc1394camera_t *camera, dc1394feature_info_t *feature)
 dc1394error_t
 dc1394_feature_print(dc1394feature_info_t *f, FILE *fd)
 {
-    int fid= f->id;
+    dc1394feature_t fid= f->id;
+    const char *feature_string = dc1394_feature_get_string (fid);
+    int i;
 
     if ( (fid < DC1394_FEATURE_MIN) || (fid > DC1394_FEATURE_MAX) ) {
         return DC1394_INVALID_FEATURE;
     }
-    const char *feature_string = dc1394_feature_get_string (fid);
+
     fprintf(fd,"%s:\n\t", feature_string);
 
     if (!f->available) {
@@ -360,7 +363,6 @@ dc1394_feature_print(dc1394feature_info_t *f, FILE *fd)
         fprintf(fd,"RC  ");
     if (f->on_off_capable)
         fprintf(fd,"O/OC  ");
-    int i;
     for (i=0;i<f->modes.num;i++) {
         switch (f->modes.modes[i]) {
         case DC1394_FEATURE_MODE_MANUAL:
@@ -1987,8 +1989,8 @@ dc1394_new (void)
 void
 dc1394_free (dc1394_t * d)
 {
-    free_enumeration (d);
     int i;
+    free_enumeration (d);
     for (i = 0; i < d->num_platforms; i++) {
         if (d->platforms[i].p)
             d->platforms[i].dispatch->platform_free (d->platforms[i].p);
@@ -2002,6 +2004,7 @@ dc1394_free (dc1394_t * d)
 void register_platform (dc1394_t * d, const platform_dispatch_t * dispatch,
         const char * name)
 {
+    int n;
     if (!dispatch->platform_new || !dispatch->platform_free ||
             !dispatch->get_device_list || !dispatch->free_device_list ||
             !dispatch->device_get_config_rom ||
@@ -2011,8 +2014,8 @@ void register_platform (dc1394_t * d, const platform_dispatch_t * dispatch,
         dc1394_log_error ("Platform %s is missing required functions", name);
         return;
     }
-    int n = d->num_platforms;
-    d->platforms = realloc(d->platforms, (n+1)*sizeof(platform_info_t));
+    n = d->num_platforms;
+    d->platforms = (platform_info_t *)realloc(d->platforms, (n+1)*sizeof(platform_info_t));
     d->platforms[n].dispatch = dispatch;
     d->platforms[n].name = name;
     d->platforms[n].device_list = NULL;

@@ -27,11 +27,11 @@
 dc1394error_t
 dc1394_iso_set_persist (dc1394camera_t * camera)
 {
+    dc1394error_t err;
     dc1394camera_priv_t * cpriv = DC1394_CAMERA_PRIV (camera);
     const platform_dispatch_t * d = cpriv->platform->dispatch;
     if (!d->iso_set_persist)
         return DC1394_FUNCTION_NOT_SUPPORTED;
-    dc1394error_t err;
     if ((err = d->iso_set_persist (cpriv->pcam)) != DC1394_SUCCESS)
         return err;
 
@@ -67,11 +67,11 @@ dc1394_iso_allocate_channel (dc1394camera_t * camera,
 dc1394error_t
 dc1394_iso_release_channel (dc1394camera_t * camera, int channel)
 {
+    dc1394error_t err;
     dc1394camera_priv_t * cpriv = DC1394_CAMERA_PRIV (camera);
     const platform_dispatch_t * d = cpriv->platform->dispatch;
     if (!d->iso_release_channel)
         return DC1394_FUNCTION_NOT_SUPPORTED;
-    dc1394error_t err;
     if ((err = d->iso_release_channel (cpriv->pcam, channel))
             != DC1394_SUCCESS)
         return err;
@@ -83,11 +83,11 @@ dc1394_iso_release_channel (dc1394camera_t * camera, int channel)
 dc1394error_t
 dc1394_iso_allocate_bandwidth (dc1394camera_t * camera, int bandwidth_units)
 {
+    dc1394error_t err;
     dc1394camera_priv_t * cpriv = DC1394_CAMERA_PRIV (camera);
     const platform_dispatch_t * d = cpriv->platform->dispatch;
     if (!d->iso_allocate_bandwidth)
         return DC1394_FUNCTION_NOT_SUPPORTED;
-    dc1394error_t err;
     if ((err = d->iso_allocate_bandwidth (cpriv->pcam, bandwidth_units))
             != DC1394_SUCCESS)
         return err;
@@ -99,11 +99,11 @@ dc1394_iso_allocate_bandwidth (dc1394camera_t * camera, int bandwidth_units)
 dc1394error_t
 dc1394_iso_release_bandwidth (dc1394camera_t * camera, int bandwidth_units)
 {
+    dc1394error_t err;
     dc1394camera_priv_t * cpriv = DC1394_CAMERA_PRIV (camera);
     const platform_dispatch_t * d = cpriv->platform->dispatch;
     if (!d->iso_release_bandwidth)
         return DC1394_FUNCTION_NOT_SUPPORTED;
-    dc1394error_t err;
     if ((err = d->iso_release_bandwidth (cpriv->pcam, bandwidth_units))
             != DC1394_SUCCESS)
         return err;

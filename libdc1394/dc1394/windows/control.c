@@ -24,8 +24,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <windows.h>
 #include <stdlib.h>
+#include <windows.h>
 #include "dc1394/internal.h"
 #include "platform_windows.h"
 #include "types.h"
@@ -59,17 +59,17 @@ dc1394_windows_capture_enqueue (platform_camera_t * craw,
 static platform_t *
 dc1394_windows_new (void)
 {
-    HDEVINFO * dev_info = t1394CmdrGetDeviceList();
+    platform_t * p = (platform_t *)calloc(1, sizeof (platform_t));
+    HDEVINFO dev_info = t1394CmdrGetDeviceList();
     if (dev_info == INVALID_HANDLE_VALUE) {
         return NULL;
     }
 
-    platform_t * p = calloc (1, sizeof (platform_t));
     if (!p) {
         return NULL;
     }
 
-    p->dev_info = dev_info;
+    *p->dev_info = dev_info;
     return p;
 }
 
@@ -145,13 +145,13 @@ dc1394_windows_get_device_list (platform_t * p)
     int device_size;
     int i;
 
-    list = calloc (1, sizeof (platform_device_list_t));
+    list = (platform_device_list_t *)calloc(1, sizeof (platform_device_list_t));
     if (!list) {
         return NULL;
     }
 
     device_size = number_of_devices(p);
-    list->devices = malloc (device_size * sizeof(platform_device_t *));
+    list->devices = (platform_device_t **)malloc(device_size * sizeof(platform_device_t *));
     if (!list->devices) {
         free (list);
         return NULL;
@@ -175,7 +175,7 @@ dc1394_windows_get_device_list (platform_t * p)
             break;
         }
 
-        device = malloc (sizeof (platform_device_t));
+        device = (platform_device_t *)malloc(sizeof (platform_device_t));
         if (!device) {
             break;
         }
@@ -228,7 +228,7 @@ static platform_camera_t *
 dc1394_windows_camera_new (platform_t * p, platform_device_t * device,
                            uint32_t unit_directory_offset)
 {
-    platform_camera_t * camera = malloc (sizeof (platform_camera_t));
+    platform_camera_t * camera = (platform_camera_t *)malloc(sizeof (platform_camera_t));
     if (!camera) {
         return NULL;
     }
@@ -382,38 +382,39 @@ dc1394_windows_capture_get_fileno (platform_camera_t * craw)
 
 static platform_dispatch_t
 windows_dispatch = {
-    .platform_new = dc1394_windows_new,
-    .platform_free = dc1394_windows_free,
+    dc1394_windows_new,
+    dc1394_windows_free,
 
-    .get_device_list = dc1394_windows_get_device_list,
-    .free_device_list = dc1394_windows_free_device_list,
-    .device_get_config_rom = dc1394_windows_device_get_config_rom,
+    dc1394_windows_get_device_list,
+    dc1394_windows_free_device_list,
+    dc1394_windows_device_get_config_rom,
 
-    .camera_new = dc1394_windows_camera_new,
-    .camera_free = dc1394_windows_camera_free,
-    .camera_set_parent = dc1394_windows_camera_set_parent,
+    dc1394_windows_camera_new,
+    dc1394_windows_camera_free,
+    dc1394_windows_camera_set_parent,
 
-    .camera_read = dc1394_windows_camera_read,
-    .camera_write = dc1394_windows_camera_write,
+    dc1394_windows_camera_read,
+    dc1394_windows_camera_write,
 
-    .reset_bus = dc1394_windows_reset_bus,
-    .camera_print_info = dc1394_windows_camera_print_info,
-    .camera_get_node = dc1394_windows_camera_get_node,
-    .set_broadcast = dc1394_windows_set_broadcast,
-    .get_broadcast = dc1394_windows_get_broadcast,
-    .read_cycle_timer = dc1394_windows_read_cycle_timer,
+    dc1394_windows_reset_bus,
+    dc1394_windows_read_cycle_timer,
+    dc1394_windows_camera_get_node,
+    dc1394_windows_camera_print_info,
+    dc1394_windows_set_broadcast,
+    dc1394_windows_get_broadcast,
 
-    .capture_setup = dc1394_windows_capture_setup,
-    .capture_stop = dc1394_windows_capture_stop,
-    .capture_dequeue = dc1394_windows_capture_dequeue,
-    .capture_enqueue = dc1394_windows_capture_enqueue,
-    .capture_get_fileno = dc1394_windows_capture_get_fileno,
+    dc1394_windows_capture_setup,
+    dc1394_windows_capture_stop,
+    dc1394_windows_capture_dequeue,
+    dc1394_windows_capture_enqueue,
+    dc1394_windows_capture_get_fileno,
+    NULL,
 
-    .iso_set_persist = dc1394_windows_iso_set_persist,
-    .iso_allocate_channel = dc1394_windows_iso_allocate_channel,
-    .iso_release_channel = dc1394_windows_iso_release_channel,
-    .iso_allocate_bandwidth = dc1394_windows_iso_allocate_bandwidth,
-    .iso_release_bandwidth = dc1394_windows_iso_release_bandwidth,
+    dc1394_windows_iso_set_persist,
+    dc1394_windows_iso_allocate_channel,
+    dc1394_windows_iso_release_channel,
+    dc1394_windows_iso_allocate_bandwidth,
+    dc1394_windows_iso_release_bandwidth,
 };
 
 void

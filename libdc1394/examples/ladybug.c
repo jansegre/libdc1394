@@ -64,6 +64,9 @@ main(int argn, char **argv)
     dc1394video_frame_t *frame;
     char filename[256];
 
+    int cam, k, i;
+    unsigned int jpgadr, jpgsize, adr;
+
     FILE *fd;
 
     dc1394_t * d;
@@ -104,9 +107,7 @@ main(int argn, char **argv)
     err=dc1394_video_set_transmission(camera, DC1394_ON);
     DC1394_ERR_RTN(err,"Could not start transmission");
 
-    int cam, k, i=0;
-    unsigned int jpgadr, jpgsize, adr;
-
+    i=0;
     while (i<NFRAMES) {
         // capture frame
         err=dc1394_capture_dequeue(camera, DC1394_CAPTURE_POLICY_WAIT, &frame);

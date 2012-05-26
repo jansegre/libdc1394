@@ -22,7 +22,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <unistd.h>
+//#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include "vendor/avt.h"
@@ -285,15 +285,15 @@ dc1394_avt_get_shading(dc1394camera_t *camera,
 
     /* Shading ON / OFF : Bit 6 */
     if (on_off)
-        *on_off = (uint32_t)((value & 0x2000000UL) >> 25);
+        *on_off = (dc1394bool_t)((value & 0x2000000UL) >> 25);
 
     /* Compute : Bit 5 */
     if (compute)
-        *compute = (uint32_t)((value & 0x4000000UL) >> 26);
+        *compute = (dc1394bool_t)((value & 0x4000000UL) >> 26);
 
     /* Show image : Bit 4 */
     if (show)
-        *show = (uint32_t)((value & 0x8000000UL) >> 27);
+        *show = (dc1394bool_t)((value & 0x8000000UL) >> 27);
 
     /* Number of images for auto computing of the shading reference: Bits 24..31 */
     if (frame_nb)
@@ -356,11 +356,11 @@ dc1394_avt_get_shading_mem_ctrl(dc1394camera_t *camera, dc1394bool_t *en_write,
 
     /* Enable write access : Bit 5 */
     if (en_write)
-        *en_write = (uint32_t)((value & 0x4000000UL) >> 26);
+        *en_write = (dc1394bool_t)((value & 0x4000000UL) >> 26);
 
     /* Enable read access : Bit 6 */
     if (en_read)
-        *en_read = (uint32_t)((value & 0x2000000UL) >> 25);
+        *en_read = (dc1394bool_t)((value & 0x2000000UL) >> 25);
 
     /* addroffset in byte : Bits 8..31 */
     if (addroffset)
@@ -437,7 +437,7 @@ dc1394_avt_get_multiple_slope(dc1394camera_t *camera,
     DC1394_ERR_RTN(err,"Could not get AVT HDR control register");
 
     /* Multiple slope ON / OFF : Bit 6 */
-    *on_off = (uint32_t)((value & 0x2000000UL) >> 25);
+    *on_off = (dc1394bool_t)((value & 0x2000000UL) >> 25);
 
     /* Number of actives points : Bits 28..31 */
     *points_nb =(uint32_t)((value & 0xFUL));
@@ -702,7 +702,7 @@ dc1394_avt_get_trigger_delay(dc1394camera_t *camera, dc1394bool_t *on_off, uint3
     DC1394_ERR_RTN(err,"Could not get AVT trigger delay");
 
     /* trigger_delay ON / OFF : Bit 6 */
-    *on_off = (uint32_t)((value & 0x2000000UL) >> 25);
+    *on_off = (dc1394bool_t)((value & 0x2000000UL) >> 25);
 
     /* Delai time in us : Bits 11..31 */
     *DelayTime =(uint32_t)((value & 0xFFFFFUL));
@@ -752,7 +752,7 @@ dc1394_avt_get_mirror(dc1394camera_t *camera, dc1394bool_t *on_off)
     DC1394_ERR_RTN(err,"Could not get AVT mirror image");
 
     /* mirror ON / OFF : Bit 6 */
-    *on_off = (uint32_t)((value & 0x2000000UL) >> 25);
+    *on_off = (dc1394bool_t)((value & 0x2000000UL) >> 25);
 
     return DC1394_SUCCESS;
 }
@@ -789,7 +789,7 @@ dc1394_avt_get_dsnu(dc1394camera_t *camera, dc1394bool_t *on_off,uint32_t *frame
     DC1394_ERR_RTN(err,"Could not get AVT DSNU control");
 
     /* ON / OFF : Bit 6 */
-    *on_off = !(uint32_t)((value & 0x2000000UL) >> 25);
+    *on_off = (dc1394bool_t)!(uint32_t)((value & 0x2000000UL) >> 25);
 
     /* Number of images : Bits 24..31 */
     *frame_nb =(uint32_t)((value & 0xFFUL));
@@ -806,6 +806,7 @@ dc1394_avt_set_dsnu(dc1394camera_t *camera,
 {
     dc1394error_t err;
     uint32_t curval;
+    int cont;
 
     /* Retrieve current dsnu parameters */
     err=dc1394_get_adv_control_register(camera,REG_CAMERA_AVT_DSNU_CONTROL, &curval);
@@ -824,9 +825,9 @@ dc1394_avt_set_dsnu(dc1394camera_t *camera,
     err=dc1394_set_adv_control_register(camera,REG_CAMERA_AVT_DSNU_CONTROL, curval);
     DC1394_ERR_RTN(err,"Could not set AVT DSNU control");
 
-    int cont=1;
+    cont=1;
     while (cont) {
-        usleep(50000);
+        _sleep(50);
         err=dc1394_get_adv_control_register(camera,REG_CAMERA_AVT_DSNU_CONTROL, &curval);
         DC1394_ERR_RTN(err,"Could not get AVT DSNU control");
         if ((curval & 0x01000000UL)==0)
@@ -848,7 +849,7 @@ dc1394_avt_get_blemish(dc1394camera_t *camera, dc1394bool_t *on_off, uint32_t *f
     DC1394_ERR_RTN(err,"Could not get AVT blemish control");
 
     /* ON / OFF : Bit 6 */
-    *on_off = (uint32_t)((value & 0x2000000UL) >> 25);
+    *on_off = (dc1394bool_t)((value & 0x2000000UL) >> 25);
 
     /* Number of images : Bits 24..31 */
     *frame_nb =(uint32_t)((value & 0xFFUL));
@@ -865,6 +866,7 @@ dc1394_avt_set_blemish(dc1394camera_t *camera,
 {
     dc1394error_t err;
     uint32_t curval;
+    int cont;
 
     /* Retrieve current blemish parameters */
     err=dc1394_get_adv_control_register(camera,REG_CAMERA_AVT_BLEMISH_CONTROL, &curval);
@@ -883,9 +885,9 @@ dc1394_avt_set_blemish(dc1394camera_t *camera,
     err=dc1394_set_adv_control_register(camera,REG_CAMERA_AVT_BLEMISH_CONTROL, curval);
     DC1394_ERR_RTN(err,"Could not set AVT blemish control");
 
-    int cont=1;
+    cont=1;
     while (cont) {
-        usleep(50000);
+        _sleep(50);
         err=dc1394_get_adv_control_register(camera,REG_CAMERA_AVT_BLEMISH_CONTROL, &curval);
         DC1394_ERR_RTN(err,"Could not get AVT DSNU control");
         if ((curval & 0x01000000UL)==0)
@@ -912,10 +914,10 @@ dc1394_avt_get_io(dc1394camera_t *camera, uint32_t IO,
     DC1394_ERR_RTN(err,"Could not get AVT IO register");
 
     /* polarity : Bit 7 */
-    *polarity = (uint32_t)((value & 0x1000000UL) >> 24);
+    *polarity = (dc1394bool_t)((value & 0x1000000UL) >> 24);
 
     /* pinstate : Bit 31 */
-    *pinstate = (uint32_t)((value & 0x1UL));
+    *pinstate = (dc1394bool_t)((value & 0x1UL));
 
     /* mode : Bits 11..15 */
     *mode =(uint32_t)((value >> 16 ) & 0x1FUL);
@@ -986,7 +988,7 @@ dc1394_avt_get_lut(dc1394camera_t *camera, dc1394bool_t *on_off, uint32_t *lutnb
     DC1394_ERR_RTN(err,"Could not get AVT LUT control");
 
     /* Shading ON / OFF : Bit 6 */
-    *on_off = (uint32_t)((value & 0x2000000UL) >> 25);
+    *on_off = (dc1394bool_t)((value & 0x2000000UL) >> 25);
 
     /* Number of lut : Bits 26..31 */
     *lutnb =(uint32_t)((value & 0x3FUL));
@@ -1037,7 +1039,7 @@ dc1394_avt_get_lut_mem_ctrl(dc1394camera_t *camera, dc1394bool_t *en_write,
     DC1394_ERR_RTN(err,"Could not get AVT LUT memory control");
 
     /* Enable write access : Bit 5 */
-    *en_write = (uint32_t)((value & 0x4000000UL) >> 26);
+    *en_write = (dc1394bool_t)((value & 0x4000000UL) >> 26);
 
     /* AccessLutNo : Bits 8..15 */
     *AccessLutNo=(uint32_t)((value >> 16) & 0xFFUL);
@@ -1118,7 +1120,7 @@ dc1394_avt_get_aoi(dc1394camera_t *camera,
     DC1394_ERR_RTN(err,"Could not get AVT autofocus AOI");
 
     /*  ON / OFF : Bit 6 */
-    *on_off = (uint32_t)((value & 0x2000000UL) >> 25);
+    *on_off = (dc1394bool_t)((value & 0x2000000UL) >> 25);
 
     /* Retrieve current size of area*/
     err=dc1394_get_adv_control_register(camera,REG_CAMERA_AVT_AF_AREA_SIZE, &value);
@@ -1263,10 +1265,10 @@ dc1394_avt_get_deferred_trans(dc1394camera_t *camera,
     DC1394_ERR_RTN(err,"Could not get AVT deferred transfer info");
 
     /* enable/disable deferred transport mode : Bit 6 */
-    *HoldImage = (uint32_t)((value & 0x2000000UL) >> 25);
+    *HoldImage = (dc1394bool_t)((value & 0x2000000UL) >> 25);
 
     /* enable/disable fast capture mode (format 7 only) : Bit 7 */
-    *FastCapture = (uint32_t)((value & 0x1000000UL) >> 24);
+    *FastCapture = (dc1394bool_t)((value & 0x1000000UL) >> 24);
 
     /* Size of fifo in number of image : Bits 16..23 */
     *FifoSize =(uint32_t)((value >> 8 & 0xFFUL));
@@ -1391,7 +1393,7 @@ dc1394_avt_read_gpdata(dc1394camera_t *camera, unsigned char *buf, uint32_t size
         gpdata_numquads++;
 
     /* allocate memory for the 'read-buffer' */
-    buf_local = malloc(gpdata_numquads * sizeof(uint32_t));
+    buf_local = (uint32_t *)malloc(gpdata_numquads * sizeof(uint32_t));
     if (buf_local == NULL)
         return DC1394_FAILURE;
 
@@ -1443,7 +1445,7 @@ dc1394_avt_write_gpdata(dc1394camera_t *camera, unsigned char *buf, uint32_t siz
         gpdata_numquads++;
 
     /* allocate memory for the write buffer */
-    buf_local = malloc(gpdata_numquads * sizeof(uint32_t));
+    buf_local = (uint32_t *)malloc(gpdata_numquads * sizeof(uint32_t));
     if (buf_local == NULL)
         return DC1394_FAILURE;
 
@@ -1638,7 +1640,7 @@ dc1394error_t dc1394_avt_get_color_corr(dc1394camera_t *camera, dc1394bool_t *on
     DC1394_ERR_RTN(err,"Could not get AVT color correction");
 
     //ON / OFF : Bit 6
-    *on_off = (uint32_t)((value & 0x2000000UL) >> 25);
+    *on_off = (dc1394bool_t)((value & 0x2000000UL) >> 25);
 
     //red channel coefficients
     err=dc1394_get_adv_control_register(camera, REG_CAMERA_AVT_COLOR_CORR_CRR, (uint32_t *)Crr);
@@ -1687,7 +1689,7 @@ dc1394error_t dc1394_avt_get_hsnr(dc1394camera_t *camera, dc1394bool_t *on_off, 
     DC1394_ERR_RTN(err,"Could not get AVT HSNRR");
 
     /*ON / OFF : Bit 6 */
-    *on_off = (uint32_t)((value & 0x2000000UL) >> 25);
+    *on_off = (dc1394bool_t)((value & 0x2000000UL) >> 25);
 
     /* grabCount: Bits 23..31 */
     *grabCount =(uint32_t)((value & 0x1FFUL));

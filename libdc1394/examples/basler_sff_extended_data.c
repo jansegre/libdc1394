@@ -21,8 +21,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
 #include <string.h>
@@ -68,6 +68,7 @@ int main (int argc, char **argv)
 
     dc1394_t * d;
     dc1394camera_list_t * list;
+    dc1394video_frame_t* frame;
 
     d = dc1394_new ();
     if (!d)
@@ -186,7 +187,6 @@ int main (int argc, char **argv)
     DC1394_ERR_CLN_RTN(err,dc1394_camera_free (camera), "cannot enable transmission");
 
     i = 0;
-    dc1394video_frame_t* frame;
     while (i < 100) {
         err = dc1394_capture_dequeue (camera, DC1394_CAPTURE_POLICY_WAIT, &frame);
         if (err != DC1394_SUCCESS) {

@@ -26,10 +26,10 @@
  */
 
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <dc1394/dc1394.h>
-#include <stdlib.h>
 #include <inttypes.h>
 
 
@@ -133,25 +133,25 @@ void print_color_coding( uint32_t color_id )
 /*-----------------------------------------------------------------------
  *  Prints various information about the mode the camera is in
  *-----------------------------------------------------------------------*/
-void print_mode_info( dc1394camera_t *camera , uint32_t mode )
+void print_mode_info(dc1394camera_t *camera , dc1394video_mode_t mode)
 {
     int j;
+    dc1394framerates_t framerates;
+    dc1394error_t err;
 
     printf("Mode: ");
     print_format(mode);
     printf("\n");
 
-    dc1394framerates_t framerates;
-    dc1394error_t err;
-    err=dc1394_video_get_supported_framerates(camera,mode,&framerates);
+    err=dc1394_video_get_supported_framerates(camera, mode, &framerates);
     DC1394_ERR(err,"Could not get frame rates");
 
     printf("Frame Rates:\n");
     for( j = 0; j < framerates.num; j++ ) {
-        uint32_t rate = framerates.framerates[j];
+        dc1394framerate_t rate = framerates.framerates[j];
         float f_rate;
-        dc1394_framerate_as_float(rate,&f_rate);
-        printf("  [%d] rate = %f\n",j,f_rate );
+        dc1394_framerate_as_float(rate, &f_rate);
+        printf("  [%d] rate = %f\n", j, f_rate );
     }
 
 }
@@ -176,7 +176,14 @@ int main(int argc, char *argv[])
     dc1394_t * d;
     dc1394camera_list_t * list;
 
+    dc1394video_modes_t modes;
+    dc1394video_mode_t selected_mode;
+
     dc1394error_t err;
+
+    uint64_t numPixels;
+
+    dc1394video_frame_t * new_frame;
 
     d = dc1394_new ();
     if (!d)
@@ -198,15 +205,13 @@ int main(int argc, char *argv[])
 
     printf("Using camera with GUID %"PRIx64"\n", camera->guid);
 
-    dc1394video_modes_t modes;
-
     /*-----------------------------------------------------------------------
      *  list Capture Modes
      *-----------------------------------------------------------------------*/
     err=dc1394_video_get_supported_modes(camera, &modes);
     DC1394_ERR_RTN(err,"Could not get list of modes");
 
-    uint32_t selected_mode = modes.modes[modes.num-1];
+    selected_mode = modes.modes[modes.num-1];
 
     /*-----------------------------------------------------------------------
      *  setup capture
@@ -247,9 +252,9 @@ int main(int argc, char *argv[])
      *-----------------------------------------------------------------------*/
 
     dc1394_get_image_size_from_video_mode(camera, selected_mode, &width, &height);
-    uint64_t numPixels = height*width;
+    numPixels = height*width;
 
-    dc1394video_frame_t *new_frame=calloc(1,sizeof(dc1394video_frame_t));
+    new_frame=(dc1394video_frame_t *)calloc(1,sizeof(dc1394video_frame_t));
     new_frame->color_coding=DC1394_COLOR_CODING_RGB8;
     dc1394_convert_frames(frame, new_frame);
 

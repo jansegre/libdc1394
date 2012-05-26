@@ -18,10 +18,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <dc1394/dc1394.h>
-#include <stdlib.h>
 #include <inttypes.h>
 
 
