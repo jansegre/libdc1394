@@ -69,7 +69,7 @@ dc1394_windows_new (void)
         return NULL;
     }
 
-    *p->dev_info = dev_info;
+    p->dev_info = &dev_info;
     return p;
 }
 

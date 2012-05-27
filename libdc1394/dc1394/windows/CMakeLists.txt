@@ -10,7 +10,8 @@ add_library(libdc1394-windows STATIC
 )
 
 target_link_libraries(libdc1394-windows
-    "C:\\Program Files (x86)\\CMU\\1394Camera\\lib64\\x64\\1394camera.lib"
+	Setupapi.lib
+    "C:\\Program Files (x86)\\CMU\\1394Camera\\lib\\1394camera.lib"
 )
 
 

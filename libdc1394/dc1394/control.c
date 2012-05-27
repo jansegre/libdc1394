@@ -205,7 +205,7 @@ dc1394_feature_get_all(dc1394camera_t *camera, dc1394featureset_t *features)
     dc1394error_t err=DC1394_SUCCESS;
 
     for (i= DC1394_FEATURE_MIN, j= 0; i <= DC1394_FEATURE_MAX; i++, j++)  {
-        features->feature[j].id= i;
+        features->feature[j].id = (dc1394feature_t)i;
         err=dc1394_feature_get(camera, &features->feature[j]);
         DC1394_ERR_RTN(err, "Could not get camera feature");
     }
@@ -258,7 +258,7 @@ dc1394_feature_get(dc1394camera_t *camera, dc1394feature_info_t *feature)
         for (i=DC1394_TRIGGER_MODE_MIN;i<=DC1394_TRIGGER_MODE_MAX;i++) {
             j = i - DC1394_TRIGGER_MODE_MIN;
             if (value_tmp & (0x1 << (15-j-(j>5)*8))) { // (i>5)*8 to take the mode gap into account
-                feature->trigger_modes.modes[feature->trigger_modes.num]=i;
+                feature->trigger_modes.modes[feature->trigger_modes.num] = (dc1394trigger_mode_t)i;
                 feature->trigger_modes.num++;
             }
         }
@@ -268,8 +268,8 @@ dc1394_feature_get(dc1394camera_t *camera, dc1394feature_info_t *feature)
 
         break;
     default:
-        feature->polarity_capable = 0;
-        feature->trigger_mode     = 0;
+        feature->polarity_capable = (dc1394bool_t)0;
+        feature->trigger_mode     = (dc1394trigger_mode_t)0;
 
         feature->min= (value & 0xFFF000UL) >> 12;
         feature->max= (value & 0xFFFUL);
@@ -288,13 +288,13 @@ dc1394_feature_get(dc1394camera_t *camera, dc1394feature_info_t *feature)
 
     switch (feature->id) {
     case DC1394_FEATURE_TRIGGER:
-        feature->trigger_polarity= (value & 0x01000000UL) ? DC1394_TRUE : DC1394_FALSE;
-        feature->trigger_mode= (uint32_t)((value >> 16) & 0xF);
+        feature->trigger_polarity = (dc1394trigger_polarity_t)((value & 0x01000000UL) ? DC1394_TRUE : DC1394_FALSE);
+        feature->trigger_mode = (dc1394trigger_mode_t)((value >> 16) & 0xF);
         if (feature->trigger_mode >= 14)
             feature->trigger_mode += DC1394_TRIGGER_MODE_MIN - 8;
         else
             feature->trigger_mode += DC1394_TRIGGER_MODE_MIN;
-        feature->trigger_source = (uint32_t)((value >> 21) & 0x7UL);
+        feature->trigger_source = (dc1394trigger_source_t)((value >> 21) & 0x7UL);
         if (feature->trigger_source > 3)
             feature->trigger_source -= 3;
         feature->trigger_source += DC1394_TRIGGER_SOURCE_MIN;
@@ -303,7 +303,7 @@ dc1394_feature_get(dc1394camera_t *camera, dc1394feature_info_t *feature)
         break;
     }
 
-    feature->is_on= (value & 0x02000000UL) ? DC1394_TRUE : DC1394_FALSE;
+    feature->is_on = (dc1394switch_t)((value & 0x02000000UL) ? DC1394_TRUE : DC1394_FALSE);
 
     switch (feature->id) {
     case DC1394_FEATURE_WHITE_BALANCE:
@@ -635,7 +635,7 @@ dc1394_video_get_framerate(dc1394camera_t *camera, dc1394framerate_t *framerate)
     err=dc1394_get_control_register(camera, REG_CAMERA_FRAME_RATE, &value);
     DC1394_ERR_RTN(err, "Could not get video framerate");
 
-    *framerate= (uint32_t)((value >> 29) & 0x7UL) + DC1394_FRAMERATE_MIN;
+    *framerate = (dc1394framerate_t)(((value >> 29) & 0x7UL) + DC1394_FRAMERATE_MIN);
 
     return err;
 }
@@ -671,19 +671,19 @@ dc1394_video_get_mode(dc1394camera_t *camera, dc1394video_mode_t *mode)
 
     switch(format) {
     case DC1394_FORMAT0:
-        *mode= (uint32_t)((value >> 29) & 0x7UL) + DC1394_VIDEO_MODE_FORMAT0_MIN;
+        *mode = (dc1394video_mode_t)(((value >> 29) & 0x7UL) + DC1394_VIDEO_MODE_FORMAT0_MIN);
         break;
     case DC1394_FORMAT1:
-        *mode= (uint32_t)((value >> 29) & 0x7UL) + DC1394_VIDEO_MODE_FORMAT1_MIN;
+        *mode = (dc1394video_mode_t)(((value >> 29) & 0x7UL) + DC1394_VIDEO_MODE_FORMAT1_MIN);
         break;
     case DC1394_FORMAT2:
-        *mode= (uint32_t)((value >> 29) & 0x7UL) + DC1394_VIDEO_MODE_FORMAT2_MIN;
+        *mode = (dc1394video_mode_t)(((value >> 29) & 0x7UL) + DC1394_VIDEO_MODE_FORMAT2_MIN);
         break;
     case DC1394_FORMAT6:
-        *mode= (uint32_t)((value >> 29) & 0x7UL) + DC1394_VIDEO_MODE_FORMAT6_MIN;
+        *mode = (dc1394video_mode_t)(((value >> 29) & 0x7UL) + DC1394_VIDEO_MODE_FORMAT6_MIN);
         break;
     case DC1394_FORMAT7:
-        *mode= (uint32_t)((value >> 29) & 0x7UL) + DC1394_VIDEO_MODE_FORMAT7_MIN;
+        *mode = (dc1394video_mode_t)(((value >> 29) & 0x7UL) + DC1394_VIDEO_MODE_FORMAT7_MIN);
         break;
     default:
         return DC1394_INVALID_VIDEO_FORMAT;
@@ -750,18 +750,18 @@ dc1394_video_get_iso_speed(dc1394camera_t *camera, dc1394speed_t *speed)
 
     if (camera->bmode_capable) { // check if 1394b is available
         if (value & 0x00008000) { //check if we are now using 1394b
-            *speed= (uint32_t)(value& 0x7UL);
+            *speed = (dc1394speed_t)(value& 0x7UL);
             if ((*speed<DC1394_ISO_SPEED_MIN)||(*speed>DC1394_ISO_SPEED_MAX)) // abort if speed not within valid range
                 return DC1394_INVALID_ISO_SPEED;
         }
         else { // fallback to legacy
-            *speed= (uint32_t)((value >> 24) & 0x3UL);
+            *speed = (dc1394speed_t)((value >> 24) & 0x3UL);
             if ((*speed<DC1394_ISO_SPEED_MIN)||(*speed>DC1394_ISO_SPEED_400)) // abort if speed not within valid range
                 return DC1394_INVALID_ISO_SPEED;
         }
     }
     else { // legacy
-        *speed= (uint32_t)((value >> 24) & 0x3UL);
+        *speed = (dc1394speed_t)((value >> 24) & 0x3UL);
         if ((*speed<DC1394_ISO_SPEED_MIN)||(*speed>DC1394_ISO_SPEED_400)) // abort if speed not within valid range
             return DC1394_INVALID_ISO_SPEED;
     }
@@ -966,7 +966,7 @@ dc1394_video_get_transmission(dc1394camera_t *camera, dc1394switch_t *is_on)
     err= dc1394_get_control_register(camera, REG_CAMERA_ISO_EN, &value);
     DC1394_ERR_RTN(err, "Could not get ISO status");
 
-    *is_on= (value & DC1394_FEATURE_ON)>>31;
+    *is_on = (dc1394switch_t)((value & DC1394_FEATURE_ON) >> 31);
     return err;
 }
 
@@ -1006,7 +1006,7 @@ dc1394_video_get_multi_shot(dc1394camera_t *camera, dc1394bool_t *is_on, uint32_
     uint32_t value;
     dc1394error_t err = dc1394_get_control_register(camera, REG_CAMERA_ONE_SHOT, &value);
     DC1394_ERR_RTN(err, "Could not get multishot status");
-    *is_on = (value & (DC1394_FEATURE_ON>>1)) >> 30;
+    *is_on = (dc1394bool_t)((value & (DC1394_FEATURE_ON>>1)) >> 30);
     *numFrames= value & 0xFFFFUL;
 
     return err;
@@ -1123,7 +1123,7 @@ dc1394_external_trigger_get_mode(dc1394camera_t *camera, dc1394trigger_mode_t *m
     dc1394error_t err= dc1394_get_control_register(camera, REG_CAMERA_TRIGGER_MODE, &value);
     DC1394_ERR_RTN(err, "Could not get trigger mode");
 
-    *mode= (uint32_t)( ((value >> 16) & 0xFUL) );
+    *mode = (dc1394trigger_mode_t)((value >> 16) & 0xFUL);
     if ((*mode)>5)
         (*mode)-=8;
     (*mode)+= DC1394_TRIGGER_MODE_MIN;
@@ -1169,7 +1169,7 @@ dc1394_external_trigger_get_supported_sources(dc1394camera_t *camera, dc1394trig
     sources->num=0;
     for (i = 0; i < DC1394_TRIGGER_SOURCE_NUM; i++) {
         if (value & (0x1 << (23-i-(i>3)*3))){
-            sources->sources[sources->num]=i+DC1394_TRIGGER_SOURCE_MIN;
+            sources->sources[sources->num] = (dc1394trigger_source_t)(i+DC1394_TRIGGER_SOURCE_MIN);
             sources->num++;
         }
     }
@@ -1185,7 +1185,7 @@ dc1394_external_trigger_get_source(dc1394camera_t *camera, dc1394trigger_source_
     dc1394error_t err= dc1394_get_control_register(camera, REG_CAMERA_TRIGGER_MODE, &value);
     DC1394_ERR_RTN(err, "Could not get trigger source");
 
-    *source= (uint32_t)( ((value >> 21) & 0x7UL) );
+    *source = (dc1394trigger_source_t)((value >> 21) & 0x7UL);
     if (*source > 3)
         *source -= 3;
     (*source)+= DC1394_TRIGGER_SOURCE_MIN;
@@ -1409,7 +1409,7 @@ dc1394_feature_get_power(dc1394camera_t *camera, dc1394feature_t feature, dc1394
     err=dc1394_get_control_register(camera, offset, &quadval);
     DC1394_ERR_RTN(err, "Could not get feature status");
 
-    *value = (quadval & 0x02000000UL) ? DC1394_TRUE: DC1394_FALSE;
+    *value = (dc1394switch_t)((quadval & 0x02000000UL) ? DC1394_TRUE: DC1394_FALSE);
 
     return err;
 }
@@ -1590,7 +1590,7 @@ dc1394_memory_busy(dc1394camera_t *camera, dc1394bool_t *value)
     uint32_t quadlet;
     dc1394error_t err= dc1394_get_control_register(camera, REG_CAMERA_MEMORY_SAVE, &quadlet);
     DC1394_ERR_RTN(err, "Could not get memory busy status");
-    *value = (quadlet & DC1394_FEATURE_ON) >> 31;
+    *value = (dc1394bool_t)((quadlet & DC1394_FEATURE_ON) >> 31);
     return err;
 }
 
@@ -1642,7 +1642,7 @@ dc1394_external_trigger_get_polarity(dc1394camera_t *camera, dc1394trigger_polar
     dc1394error_t err= dc1394_get_control_register(camera, REG_CAMERA_TRIGGER_MODE, &value);
     DC1394_ERR_RTN(err, "Could not get trigger polarity");
 
-    *polarity= (uint32_t)( ((value >> 24) & 0x1UL) )+DC1394_TRIGGER_ACTIVE_MIN;
+    *polarity = (dc1394trigger_polarity_t)(((value >> 24) & 0x1UL) + DC1394_TRIGGER_ACTIVE_MIN);
     return err;
 }
 
@@ -1757,7 +1757,7 @@ dc1394_feature_get_absolute_control(dc1394camera_t *camera, dc1394feature_t feat
     err=dc1394_get_control_register(camera, offset, &quadval);
     DC1394_ERR_RTN(err, "Could not get get abs control for feature");
 
-    *pwr = (quadval & 0x40000000UL) ? DC1394_TRUE: DC1394_FALSE;
+    *pwr = (dc1394switch_t)((quadval & 0x40000000UL) ? DC1394_TRUE: DC1394_FALSE);
 
     return err;
 }
@@ -1819,7 +1819,7 @@ dc1394_video_get_bandwidth_usage(dc1394camera_t *camera, uint32_t *bandwidth)
     uint32_t format, qpp;
     dc1394video_mode_t video_mode;
     dc1394speed_t speed;
-    dc1394framerate_t framerate=0;
+    dc1394framerate_t framerate = (dc1394framerate_t)0;
     dc1394error_t err;
 
     // get format and mode
@@ -1943,7 +1943,9 @@ dc1394_pio_get(dc1394camera_t *camera, uint32_t *value)
 dc1394_t *
 dc1394_new (void)
 {
-    dc1394_t * d = calloc (1, sizeof (dc1394_t));
+    int i;
+    int initializations;
+    dc1394_t * d = (dc1394_t *)calloc(1, sizeof (dc1394_t));
 #ifdef HAVE_LINUX
 #ifdef HAVE_LIBRAW1394
     linux_init (d);
@@ -1960,8 +1962,7 @@ dc1394_new (void)
     dc1394_usb_init (d);
 #endif
 
-    int i;
-    int initializations = 0;
+    initializations = 0;
     for (i = 0; i < d->num_platforms; i++) {
         dc1394_log_debug ("Initializing platform %d: %s",
                 i, d->platforms[i].name);
@@ -2035,7 +2036,7 @@ get_leaf_string (platform_camera_t * pcam, const platform_dispatch_t * disp,
         return NULL;
 
     len = quad >> 16;
-    str = malloc (4 * (len - 2) + 1);
+    str = (char *)malloc((4 * (len - 2) + 1) * sizeof(char));
     for (i = 0; i < len - 2; i++) {
         if (disp->camera_read (pcam, offset + 12 + 4 * i, &quad, 1) < 0) {
             free (str);
@@ -2126,7 +2127,7 @@ dc1394_camera_new_unit (dc1394_t * d, uint64_t guid, int unit)
     if (!command_regs_base)
         goto fail;
 
-    camera = calloc (1, sizeof (dc1394camera_priv_t));
+    camera = (dc1394camera_t *)calloc(1, sizeof(dc1394camera_t));
     cpriv = DC1394_CAMERA_PRIV (camera);
 
     cpriv->pcam = pcam;

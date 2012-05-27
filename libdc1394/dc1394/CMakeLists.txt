@@ -2,45 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 include_directories(. ..)
 
-set(libdc1394_LIBS)
-
-if(UNIX)
-    #if HAVE_LIBRAW1394
-        add_subdirectory(linux)
-        list(APPEND libdc1394_LIBS libdc1394-linux)
-    #endif
-    add_subdirectory(juju)
-    list(APPEND libdc1394_LIBS libdc1394-juju)
-endif()
-
-if(APPLE)
-    add_subdirectory(macosx)
-    list(APPEND libdc1394_LIBS libdc1394-macosx)
-endif()
-
-if(WIN32)
-    add_subdirectory(windows)
-    list(APPEND libdc1394_LIBS libdc1394-windows)
-endif()
-
-if(MSVC)
-    include_directories(../includes/msvc)
-endif()
-
-#TODO:
-#find_package(LibUSB)
-#if(LIBUSB_FOUND)
-#    add_subdirectory(usb)
-#    list(APPEND libdc1394_LIBS libdc1394-usb)
-#endif()
-
-add_subdirectory(vendor)
-list(APPEND libdc1394_LIBS libdc1394-vendor)
-
-
-########### next target ###############
-
-add_library(libdc1394
+add_library(libdc1394 STATIC
     control.c
     control.h
     enumeration.c
@@ -62,6 +24,46 @@ add_library(libdc1394
     iso.c
     iso.h
 )
+
+set(libdc1394_LIBS)
+
+if(UNIX)
+    #if HAVE_LIBRAW1394
+        add_subdirectory(linux)
+        list(APPEND libdc1394_LIBS libdc1394-linux)
+        add_definitions(-DHAVE_LIBRAW1394)
+    #endif
+    add_subdirectory(juju)
+    list(APPEND libdc1394_LIBS libdc1394-juju)
+    add_definitions(-DHAVE_LINUX)
+endif()
+
+if(APPLE)
+    add_subdirectory(macosx)
+    list(APPEND libdc1394_LIBS libdc1394-macosx)
+    add_definitions(-DHAVE_APPLE)
+endif()
+
+if(WIN32)
+    add_subdirectory(windows)
+    list(APPEND libdc1394_LIBS libdc1394-windows)
+    add_definitions(-DHAVE_WINDOWS)
+endif()
+
+if(MSVC)
+    include_directories(../includes/msvc)
+endif()
+
+#TODO:
+#find_package(LibUSB)
+#if(LIBUSB_FOUND)
+#    add_subdirectory(usb)
+#    list(APPEND libdc1394_LIBS libdc1394-usb)
+#    add_definitions(-DHAVE_LIBUSB)
+#endif()
+
+add_subdirectory(vendor)
+list(APPEND libdc1394_LIBS libdc1394-vendor)
 
 target_link_libraries(libdc1394 ${libdc1394_LIBS})
 #set_target_properties(libdc1394 PROPERTIES VERSION 1.0.0 SOVERSION 1)
